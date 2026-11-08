@@ -1,11 +1,23 @@
 // This endpoint serves as the notifier for phoenixd webhooks!
 // Be sure to place your webhook-secret in env.PHOENIXD_WEBHOOK_SECRET
 // In phoenix.conf, add the following line to turn on webhooks:
-// webhook=https://youdomain.com/api/phoenixd/route
+// webhook=https://yourdomain.com/api/phoenixd/hook
 
 const crypto = require('crypto');
 const axios = require('axios');
+import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
+
+// Optional email copy of each payment, using the same EMAIL_* variables the old notifier used.
+function emailNotification(subject, html) {
+  const { EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECIPIENT, EMAIL_BCC } = process.env;
+  if (!EMAIL_SENDER || !EMAIL_PASSWORD || !EMAIL_RECIPIENT) return;
+  const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: EMAIL_SENDER, pass: EMAIL_PASSWORD } });
+  transporter.sendMail({ from: EMAIL_SENDER, to: EMAIL_RECIPIENT, bcc: EMAIL_BCC || undefined, subject, html }, (error, info) => {
+    if (error) console.log(`Mail error: ${error}`);
+    else console.log(`Email sent: ${info.response}`);
+  });
+}
 
 function pushNotification(subject, body) {
   axios.post('https://api.pushover.net/1/messages.json', {
@@ -46,9 +58,11 @@ export async function POST(req) {
       amount = amount.toLocaleString();
 
       if (type == 'payment_received') {
+        const externalId = bodyJSON?.externalId ? ` for ${bodyJSON.externalId}` : '';
         let subject = `You got paid ${amount} sat${plural} via phoenixd!`;
-        let message = `Amount: ${amount} sat${plural} <br><br>Received via <b>phoenixd</b> 🪽`;
+        let message = `Amount: ${amount} sat${plural}${externalId} <br><br>Received via <b>phoenixd</b> 🪽`;
         pushNotification(subject, message);
+        emailNotification(subject, message);
       }
     } else {
       console.log('Invalid signature.');

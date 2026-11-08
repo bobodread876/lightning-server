@@ -14,7 +14,7 @@ No more invoicing! **Lightning Server** enables you to receive [Lightning Addres
 
 ## Prerequisites
 
-You'll need a Lightning node running [LND](https://github.com/lightningnetwork/lnd) and your own domain. Need a node? [Voltage](https://voltage.cloud) makes it easy and is a great place to get started! Make sure you have some key pieces of information handy, such as your node's REST and gRPC API endpoints, as well as your invoice macaroon.
+You'll need a [phoenixd](https://phoenix.acinq.co/server) node reachable over HTTPS and your own domain. Need a node? [Voltage](https://voltage.cloud) makes it easy and is a great place to get started! Make sure you have some key pieces of information handy, such as your node's REST and gRPC API endpoints, as well as your invoice macaroon.
 
 ## Deploying Lightning Server
 
@@ -34,9 +34,14 @@ To run this project, you will need to add the following environment variables:
 ```env
 ## REQUIRED VARIABLES #############################################################
 DOMAIN=yourdomain.com
-REST_HOST=lnd-node-address.com:8080
-GRPC_HOST=lnd-node-address.com:10009
-INVOICE_MACAROON=myInvoiceMacaroonInHex
+# phoenixd (https://phoenix.acinq.co/server) creates the invoices. Use the
+# http-password-limited-access from phoenix.conf: it can create invoices and read
+# incoming payments but cannot pay or move funds.
+PHOENIXD_URL=https://phoenixd.yourdomain.com
+PHOENIXD_PASSWORD=yourLimitedAccessPassword
+# Set webhook=https://yourdomain.com/api/phoenixd/hook in phoenix.conf and put the
+# matching webhook-secret here for push and email notifications on each payment.
+PHOENIXD_WEBHOOK_SECRET=yourWebhookSecret
 # For your push notifications! Install Pushover on your phone, then grab the
 # API information from https://pushover.net/api
 PUSHOVER_TOKEN=apiToken
